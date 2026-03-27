@@ -19,6 +19,32 @@ export default function StopwatchPage() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
+  useEffect(() => {
+    const handleToggle = () => {
+      handleStartPause();
+    };
+
+    const handleReset = () => {
+      handleReset();
+    };
+
+    const handleLap = () => {
+      if (isRunning) {
+        handleLap();
+      }
+    };
+
+    window.addEventListener('stopwatchToggle', handleToggle);
+    window.addEventListener('stopwatchReset', handleReset);
+    window.addEventListener('stopwatchLap', handleLap);
+
+    return () => {
+      window.removeEventListener('stopwatchToggle', handleToggle);
+      window.removeEventListener('stopwatchReset', handleReset);
+      window.removeEventListener('stopwatchLap', handleLap);
+    };
+  }, [isRunning]);
+
   const handleStartPause = () => {
     if (isRunning) pausedTimeRef.current = time;
     setIsRunning(!isRunning);
@@ -81,7 +107,7 @@ export default function StopwatchPage() {
 
         <motion.button
           onClick={handleStartPause}
-          className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-lg ${isRunning ? 'bg-[#ff5252]' : 'bg-[#3d5afe]'}`}
+          className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-lg ${isRunning ? 'bg-[#ff5252]' : 'bg-[var(--primary)]'}`}
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.02 }}
         >
@@ -91,7 +117,7 @@ export default function StopwatchPage() {
         <motion.button
           onClick={handleLap}
           disabled={!isRunning}
-          className={`w-16 h-16 rounded-full flex items-center justify-center ${isRunning ? 'bg-[#2c2c2c] text-[#3d5afe]' : 'bg-[#2c2c2c] text-[#6b6b6b]'}`}
+          className={`w-16 h-16 rounded-full flex items-center justify-center ${isRunning ? 'bg-[#2c2c2c] text-[var(--primary)]' : 'bg-[#2c2c2c] text-[#6b6b6b]'}`}
           whileTap={{ scale: 0.95 }}
         >
           <Flag size={28} />

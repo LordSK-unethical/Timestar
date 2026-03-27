@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary: #3d5afe;
+  --primary-light: #536dfe;
+  --primary-dark: #304ffe;
+  --bg-primary: #121212;
+  --bg-surface: #1e1e1e;
+  --bg-card: #252525;
+  --text-primary: #e2e2e2;
+  --text-secondary: #8a8a8a;
+  --border-color: #2c2c2c;
+}
+
+.light {
+  --bg-primary: #f5f5f5;
+  --bg-surface: #ffffff;
+  --bg-card: #f0f0f0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -16,8 +37,14 @@ html, body, #root {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #121212;
-  color: #e2e2e2;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.light {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 ::-webkit-scrollbar {
@@ -31,4 +58,50 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #4b5563;
   border-radius: 3px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg font-medium transition-all;
+    background-color: var(--primary);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+  }
+  
+  .card {
+    @apply rounded-xl p-4;
+    background-color: var(--bg-surface);
+  }
+  
+  .input {
+    @apply w-full px-3 py-2 rounded-lg transition-colors;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+  
+  .input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+}
+
+.widget-mode {
+  background: transparent !important;
+}
+
+.widget-mode nav,
+.widget-mode .navbar {
+  display: none !important;
+}
+
+.widget-mode main {
+  padding: 0 !important;
 }

@@ -87,7 +87,7 @@ export default function ClockPage() {
           </div>
           <motion.button
             onClick={() => setShowAddCity(true)}
-            className="w-8 h-8 rounded-xl bg-[#3d5afe] flex items-center justify-center"
+            className="w-8 h-8 rounded-xl bg-[var(--primary)] flex items-center justify-center"
             whileTap={{ scale: 0.9 }}
           >
             <Plus size={18} className="text-white" />
@@ -194,7 +194,7 @@ export default function ClockPage() {
                         <div className="text-sm text-[#6b6b6b]">{city.country}</div>
                       </div>
                       {isAdded && (
-                        <span className="text-[#3d5afe] text-sm">Added</span>
+                        <span className="text-[var(--primary)] text-sm">Added</span>
                       )}
                     </motion.button>
                   );
@@ -213,7 +213,7 @@ export default function ClockPage() {
                           whileTap={{ scale: 0.98 }}
                         >
                           <span className="text-[#e2e2e2]">{city.name}</span>
-                          {isAdded && <span className="text-[#3d5afe] text-xs">Added</span>}
+                          {isAdded && <span className="text-[var(--primary)] text-xs">Added</span>}
                         </motion.button>
                       );
                     })}

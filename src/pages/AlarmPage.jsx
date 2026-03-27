@@ -229,7 +229,7 @@ export default function AlarmPage() {
             </motion.button>
             <motion.button
               onClick={handleDismiss}
-              className="py-4 px-8 rounded-2xl bg-[#3d5afe] text-white font-medium"
+              className="py-4 px-8 rounded-2xl bg-[var(--primary)] text-white font-medium"
               whileTap={{ scale: 0.95 }}
             >
               Dismiss
@@ -279,11 +279,11 @@ export default function AlarmPage() {
               <div className="flex items-center gap-4">
                 <motion.button 
                   onClick={() => toggleEnabled(alarm.id)}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${alarm.enabled ? 'bg-[#3d5afe]/20' : 'bg-[#2c2c2c]'}`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${alarm.enabled ? 'bg-[var(--primary)]/20' : 'bg-[#2c2c2c]'}`}
                   whileTap={{ scale: 0.9 }}
                 >
                   {alarm.enabled ? (
-                    <Bell size={20} className="text-[#3d5afe]" />
+                    <Bell size={20} className="text-[var(--primary)]" />
                   ) : (
                     <BellOff size={20} className="text-[#6b6b6b]" />
                   )}
@@ -347,7 +347,7 @@ export default function AlarmPage() {
           setEditingId(null); 
           setFormData(getDefaultFormData());
         }}
-        className="fixed bottom-24 right-6 w-14 h-14 rounded-2xl bg-[#3d5afe] text-white flex items-center justify-center shadow-lg"
+        className="fixed bottom-24 right-6 w-14 h-14 rounded-2xl bg-[var(--primary)] text-white flex items-center justify-center shadow-lg"
         whileHover={{ scale: 1.08, boxShadow: '0 8px 20px rgba(61, 90, 254, 0.4)' }}
         whileTap={{ scale: 0.92 }}
         initial={{ scale: 0 }}
@@ -422,7 +422,7 @@ export default function AlarmPage() {
                       onClick={() => toggleDay(index)}
                       className={`w-10 h-10 rounded-xl text-sm font-medium transition-colors ${
                         formData.repeatDays.includes(index)
-                          ? 'bg-[#3d5afe] text-white'
+                          ? 'bg-[var(--primary)] text-white'
                           : 'bg-[#2c2c2c] text-[#8a8a8a] hover:text-[#e2e2e2]'
                       }`}
                       whileTap={{ scale: 0.9 }}
@@ -464,7 +464,7 @@ export default function AlarmPage() {
                 placeholder="Label (optional)"
                 value={formData.label}
                 onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                className="w-full p-4 rounded-xl bg-[#2c2c2c] text-[#e2e2e2] placeholder-[#6b6b6b] mb-6 focus:outline-none focus:ring-2 focus:ring-[#3d5afe]/50 transition-all"
+                className="w-full p-4 rounded-xl bg-[#2c2c2c] text-[#e2e2e2] placeholder-[#6b6b6b] mb-6 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 transition-all"
               />
 
               <div className="flex gap-3">
@@ -477,7 +477,7 @@ export default function AlarmPage() {
                 </motion.button>
                 <motion.button 
                   onClick={editingId ? handleUpdate : handleAdd} 
-                  className="flex-1 py-3.5 rounded-xl bg-[#3d5afe] text-white font-medium flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-xl bg-[var(--primary)] text-white font-medium flex items-center justify-center gap-2"
                   whileTap={{ scale: 0.98 }}
                   whileHover={{ backgroundColor: '#4d6afe' }}
                 >

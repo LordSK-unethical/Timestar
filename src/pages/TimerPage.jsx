@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, RotateCcw, Plus, Minus, Timer, Trash2, Plus as AddIcon, BellRing, RotateCcw as Refresh } from 'lucide-react';
 import { formatTimerDisplay } from '../utils/timeUtils';
+import { useTheme } from '../hooks/useTheme';
 
 const TIMER_PRESETS = [
   { label: '1m', seconds: 60 },
@@ -104,7 +105,7 @@ function TimerCard({ timer, onStart, onPause, onReset, onDelete, onUpdateTime })
           <circle cx="72" cy="72" r="70" stroke="#2c2c2c" strokeWidth="8" fill="none" />
           <motion.circle
             cx="72" cy="72" r="70"
-            stroke={timer.isCompleted ? '#22c55e' : '#3d5afe'}
+            stroke={timer.isCompleted ? '#22c55e' : 'var(--primary)'}
             strokeWidth="8"
             fill="none"
             strokeDasharray={circumference}
@@ -151,7 +152,7 @@ function TimerCard({ timer, onStart, onPause, onReset, onDelete, onUpdateTime })
           {!timer.isInputMode && !timer.isCompleted && (
             <motion.button
               onClick={() => timer.isRunning ? onPause(timer.id) : onStart(timer.id)}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white ${timer.isRunning ? 'bg-[#ff5252]' : 'bg-[#3d5afe]'}`}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white ${timer.isRunning ? 'bg-[#ff5252]' : 'bg-[var(--primary)]'}`}
               whileTap={{ scale: 0.9 }}
             >
               {timer.isRunning ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
@@ -173,7 +174,7 @@ function TimerCard({ timer, onStart, onPause, onReset, onDelete, onUpdateTime })
             <motion.button
               onClick={() => onStart(timer.id)}
               disabled={timer.totalSeconds === 0}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white ${timer.totalSeconds > 0 ? 'bg-[#3d5afe]' : 'bg-[#2c2c2c] text-[#6b6b6b]'}`}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-white ${timer.totalSeconds > 0 ? 'bg-[var(--primary)]' : 'bg-[#2c2c2c] text-[#6b6b6b]'}`}
               whileTap={{ scale: 0.9 }}
             >
               <Play size={20} className="ml-0.5" />
@@ -257,9 +258,39 @@ function TimerCompletePopup({ timer, onDismiss, onRestart }) {
 }
 
 export default function TimerPage() {
+  const { colorScheme } = useTheme();
   const [timers, setTimers] = useState([createTimer(1, '', 300)]);
   const [completedTimerId, setCompletedTimerId] = useState(null);
   const intervalsRef = useRef({});
+
+  useEffect(() => {
+    const handleToggle = () => {
+      const runningTimer = timers.find(t => t.isRunning && !t.isCompleted);
+      if (runningTimer) {
+        pauseTimer(runningTimer.id);
+      } else {
+        const pausedTimer = timers.find(t => !t.isRunning && t.remainingSeconds > 0 && !t.isCompleted);
+        if (pausedTimer) {
+          startTimer(pausedTimer.id);
+        }
+      }
+    };
+
+    const handleReset = () => {
+      const activeTimer = timers.find(t => !t.isCompleted && t.remainingSeconds > 0);
+      if (activeTimer) {
+        resetTimer(activeTimer.id);
+      }
+    };
+
+    window.addEventListener('timerToggle', handleToggle);
+    window.addEventListener('timerReset', handleReset);
+
+    return () => {
+      window.removeEventListener('timerToggle', handleToggle);
+      window.removeEventListener('timerReset', handleReset);
+    };
+  }, [timers]);
 
   useEffect(() => {
     Object.values(intervalsRef.current).forEach(interval => {
@@ -401,7 +432,7 @@ export default function TimerPage() {
         <h2 className="text-2xl font-normal text-[#e2e2e2] ml-2">Timer</h2>
         <motion.button
           onClick={addTimer}
-          className="w-10 h-10 rounded-xl bg-[#3d5afe] flex items-center justify-center"
+          className="w-10 h-10 rounded-xl bg-[var(--primary)] flex items-center justify-center"
           whileTap={{ scale: 0.9 }}
         >
           <AddIcon size={20} className="text-white" />
@@ -428,7 +459,7 @@ export default function TimerPage() {
           <p className="text-[#8a8a8a]">No timers</p>
           <motion.button
             onClick={addTimer}
-            className="mt-4 px-6 py-2 rounded-xl bg-[#3d5afe] text-white"
+            className="mt-4 px-6 py-2 rounded-xl bg-[var(--primary)] text-white"
             whileTap={{ scale: 0.95 }}
           >
             Add Timer
