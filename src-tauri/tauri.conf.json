@@ -2,10 +2,10 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "TimeStar",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.timestar.app",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
@@ -13,10 +13,14 @@
     "windows": [
       {
         "title": "TimeStar",
-        "width": 800,
-        "height": 600,
+        "label": "main",
+        "width": 480,
+        "height": 720,
+        "minWidth": 400,
+        "minHeight": 500,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true
       }
     ],
     "security": {
