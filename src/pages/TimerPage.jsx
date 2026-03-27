@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, RotateCcw, Plus, Minus, Timer, Trash2, Plus as AddIcon, BellRing, RotateCcw as Refresh } from 'lucide-react';
 import { formatTimerDisplay } from '../utils/timeUtils';
 import { useTheme } from '../hooks/useTheme';
+import { shouldShowNotification } from '../utils/settingsUtils';
+import PageHeader from '../components/PageHeader';
 
 const TIMER_PRESETS = [
   { label: '1m', seconds: 60 },
@@ -257,7 +259,7 @@ function TimerCompletePopup({ timer, onDismiss, onRestart }) {
   );
 }
 
-export default function TimerPage() {
+export default function TimerPage({ onBack }) {
   const { colorScheme } = useTheme();
   const [timers, setTimers] = useState([createTimer(1, '', 300)]);
   const [completedTimerId, setCompletedTimerId] = useState(null);
@@ -306,7 +308,9 @@ export default function TimerPage() {
               if (t.id === timer.id && t.isRunning && t.remainingSeconds > 0) {
                 const newRemaining = t.remainingSeconds - 1;
                 if (newRemaining <= 0) {
-                  playTimerSound();
+                  if (shouldShowNotification('timer')) {
+                    playTimerSound();
+                  }
                   return { ...t, remainingSeconds: 0, isRunning: false, isCompleted: true };
                 }
                 return { ...t, remainingSeconds: newRemaining };
@@ -332,7 +336,7 @@ export default function TimerPage() {
         if (interval) clearInterval(interval);
       });
     };
-  }, []);
+  }, [timers]);
 
   const completedTimer = completedTimerId ? timers.find(t => t.id === completedTimerId) : null;
 
@@ -417,7 +421,9 @@ export default function TimerPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col px-4 pt-8 pb-28 overflow-y-auto">
+    <div className="flex flex-col h-full">
+      {onBack && <PageHeader title="Timer" onBack={onBack} />}
+      <div className="flex-1 flex flex-col px-4 pt-4 pb-28 overflow-y-auto">
       <AnimatePresence>
         {completedTimer && (
           <TimerCompletePopup
@@ -466,6 +472,7 @@ export default function TimerPage() {
           </motion.button>
         </div>
       )}
+      </div>
     </div>
   );
 }

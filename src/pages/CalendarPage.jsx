@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Bell, Calendar as CalendarIcon } from 'lucide-react';
 import { writeFile, readFile, exists, BaseDirectory } from '@tauri-apps/plugin-fs';
+import PageHeader from '../components/PageHeader';
 
 const EVENTS_FILE = 'calendar_events.json';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-export default function CalendarPage() {
+export default function CalendarPage({ onBack }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState([]);
@@ -145,18 +146,21 @@ export default function CalendarPage() {
   const days = getDaysInMonth(currentDate);
 
   return (
-    <div className="flex flex-col h-full p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-white">Calendar</h1>
-        <button
-          onClick={handleAddEvent}
-          className="p-2 rounded-full bg-[var(--primary)] text-white"
-        >
-          <Plus size={20} />
-        </button>
-      </div>
-
-      <div className="bg-[#1e1e1e] rounded-xl p-4 mb-4">
+    <div className="flex flex-col h-full">
+      <PageHeader 
+        title="Calendar" 
+        onBack={onBack}
+        rightAction={
+          <button
+            onClick={handleAddEvent}
+            className="p-2 rounded-full bg-[var(--primary)] text-white"
+          >
+            <Plus size={20} />
+          </button>
+        }
+      />
+      <div className="flex-1 p-4 overflow-auto">
+        <div className="bg-[#1e1e1e] rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <button onClick={handlePrevMonth} className="p-1 text-gray-400 hover:text-white">
             <ChevronLeft size={24} />
@@ -262,6 +266,7 @@ export default function CalendarPage() {
             ))}
           </div>
         )}
+      </div>
       </div>
 
       <AnimatePresence>

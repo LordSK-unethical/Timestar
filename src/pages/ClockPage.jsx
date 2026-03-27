@@ -5,8 +5,9 @@ import {
   CITIES, WORLD_CLOCK_KEY, 
   getTimeInTimezone, getTimeDifference, searchCities 
 } from '../utils/worldClockUtils';
+import PageHeader from '../components/PageHeader';
 
-export default function ClockPage() {
+export default function ClockPage({ onBack }) {
   const [time, setTime] = useState(new Date());
   const [worldClock, setWorldClock] = useState(() => {
     const saved = localStorage.getItem(WORLD_CLOCK_KEY);
@@ -53,29 +54,32 @@ export default function ClockPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center pb-28 px-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center"
-      >
-        <div className="mb-2 text-sm text-[#8a8a8a] font-medium">Local time</div>
+    <div className="flex flex-col h-full overflow-hidden">
+      {onBack && <PageHeader title="Clock" onBack={onBack} />}
+      <div className="flex-1 flex flex-col items-center px-6 pt-8 pb-28 overflow-auto">
         
         <motion.div
-          className="text-[72px] font-light tracking-tight text-[#e2e2e2] mb-2"
-          key={seconds}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center mb-8"
         >
-          {hours}:{minutes}
-          <span className="text-[36px] text-[#6b6b6b] ml-1 align-top">{seconds}</span>
+          <div className="mb-2 text-sm text-[#8a8a8a] font-medium">Local time</div>
+          
+          <motion.div
+            className="text-[72px] font-light tracking-tight text-[#e2e2e2] mb-2"
+            key={seconds}
+          >
+            {hours}:{minutes}
+            <span className="text-[36px] text-[#6b6b6b] ml-1 align-top">{seconds}</span>
+          </motion.div>
+
+          <div className="text-base text-[#8a8a8a]">
+            {date}
+          </div>
         </motion.div>
 
-        <div className="text-base text-[#8a8a8a]">
-          {date}
-        </div>
-      </motion.div>
-
       <motion.div 
-        className="mt-12 w-full max-w-[360px]"
+        className="w-full max-w-[360px]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -224,6 +228,7 @@ export default function ClockPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Moon, Sun, Palette, Upload, Keyboard, Maximize2, Minimize2, Bell, Volume2 } from 'lucide-react';
+import { Moon, Sun, Palette, Upload, Maximize2, Bell, Volume2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { toggleWidgetMode, getIsWidgetMode } from '../managers/widgetWindow';
 import { selectAudioFile, getSavedRingtones, saveRingtoneSettings, DEFAULT_RINGTONES } from '../managers/audioManager';
-import { getShortcuts } from '../managers/shortcutManager';
+import PageHeader from '../components/PageHeader';
 
 const COLOR_SCHEMES = [
   { id: 'blue', name: 'Blue', primary: '#3d5afe', primaryLight: '#8187ff', primaryDark: '#0031cb' },
@@ -13,16 +13,52 @@ const COLOR_SCHEMES = [
   { id: 'orange', name: 'Orange', primary: '#ff9800', primaryLight: '#ffc947', primaryDark: '#c66900' },
 ];
 
-export default function SettingsPage() {
+const NOTIFICATION_KEYS = {
+  alarm: 'alarmNotifications',
+  timer: 'timerNotifications', 
+  pomodoro: 'pomodoroNotifications'
+};
+
+function ToggleSwitch({ isOn, onToggle, disabled = false }) {
+  return (
+    <button
+      onClick={onToggle}
+      disabled={disabled}
+      className={`w-14 h-8 rounded-full transition-colors relative ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${
+        isOn ? 'bg-[var(--primary)]' : 'bg-[#3c3c3c]'
+      }`}
+    >
+      <motion.div
+        className="absolute top-1 w-6 h-6 rounded-full bg-white shadow-md"
+        animate={{ left: isOn ? '28px' : '4px' }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+      />
+    </button>
+  );
+}
+
+export default function SettingsPage({ onBack }) {
   const { isDark, setIsDark, colorScheme, setColorScheme } = useTheme();
   const [widgetMode, setWidgetMode] = useState(false);
   const [savedRingtones, setSavedRingtones] = useState([]);
-  const [shortcuts] = useState(getShortcuts());
+  const [notifications, setNotifications] = useState(() => ({
+    alarm: localStorage.getItem(NOTIFICATION_KEYS.alarm) !== 'false',
+    timer: localStorage.getItem(NOTIFICATION_KEYS.timer) !== 'false',
+    pomodoro: localStorage.getItem(NOTIFICATION_KEYS.pomodoro) !== 'false',
+  }));
 
   useEffect(() => {
     setWidgetMode(getIsWidgetMode());
     loadRingtones();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(NOTIFICATION_KEYS.alarm, notifications.alarm);
+    localStorage.setItem(NOTIFICATION_KEYS.timer, notifications.timer);
+    localStorage.setItem(NOTIFICATION_KEYS.pomodoro, notifications.pomodoro);
+    
+    window.dispatchEvent(new CustomEvent('notificationSettings', { detail: notifications }));
+  }, [notifications]);
 
   const loadRingtones = async () => {
     const ringtones = await getSavedRingtones();
@@ -51,11 +87,17 @@ export default function SettingsPage() {
     }
   };
 
-  return (
-    <div className="flex flex-col h-full p-4 overflow-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
+  const toggleNotification = (type) => {
+    setNotifications(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
 
-      <div className="space-y-6">
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeader title="Settings" onBack={onBack} />
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-8">
         <section className="bg-[#1e1e1e] rounded-xl p-4">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Palette size={20} className="text-[var(--primary)]" />
@@ -64,21 +106,10 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Dark Mode</span>
-              <button
-                onClick={handleThemeToggle}
-                className={`w-14 h-8 rounded-full transition-colors relative ${
-                  isDark ? 'bg-[var(--primary)]' : 'bg-[#3c3c3c]'
-                }`}
-              >
-                <motion.div
-                  className="absolute top-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center"
-                  animate={{ left: isDark ? '28px' : '4px' }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                >
-                  {isDark ? <Moon size={14} className="text-gray-800" /> : <Sun size={14} className="text-gray-800" />}
-                </motion.div>
-              </button>
+              <div>
+                <span className="text-gray-300">Dark Mode</span>
+              </div>
+              <ToggleSwitch isOn={isDark} onToggle={handleThemeToggle} />
             </div>
 
             <div>
@@ -134,18 +165,7 @@ export default function SettingsPage() {
               <span className="text-gray-300 block">Widget Mode</span>
               <span className="text-sm text-gray-500">Compact always-on-top view</span>
             </div>
-            <button
-              onClick={handleWidgetToggle}
-              className={`w-14 h-8 rounded-full transition-colors relative ${
-                widgetMode ? 'bg-[var(--primary)]' : 'bg-[#3c3c3c]'
-              }`}
-            >
-              <motion.div
-                className="absolute top-1 w-6 h-6 rounded-full bg-white shadow-md"
-                animate={{ left: widgetMode ? '28px' : '4px' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            </button>
+            <ToggleSwitch isOn={widgetMode} onToggle={handleWidgetToggle} />
           </div>
         </section>
 
@@ -155,7 +175,7 @@ export default function SettingsPage() {
             Custom Ringtones
           </h2>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-40 overflow-y-auto">
             {savedRingtones.map((ringtone, index) => (
               <div
                 key={ringtone.id || index}
@@ -180,46 +200,40 @@ export default function SettingsPage() {
 
         <section className="bg-[#1e1e1e] rounded-xl p-4">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Keyboard size={20} className="text-[var(--primary)]" />
-            Keyboard Shortcuts
-          </h2>
-
-          <div className="space-y-2">
-            {Object.entries(shortcuts).map(([key, config]) => (
-              <div key={key} className="flex items-center justify-between py-2">
-                <span className="text-gray-400 text-sm">{config.description}</span>
-                <kbd className="px-2 py-1 bg-[#2c2c2c] rounded text-xs text-gray-300 font-mono">
-                  {key.replace('CommandOrControl', 'Ctrl')}
-                </kbd>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-[#1e1e1e] rounded-xl p-4">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Bell size={20} className="text-[var(--primary)]" />
             Notifications
           </h2>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Alarm Notifications</span>
-              <button className="w-12 h-6 rounded-full bg-[var(--primary)]">
-                <div className="w-5 h-5 rounded-full bg-white translate-x-6" />
-              </button>
+              <div>
+                <span className="text-gray-300 block">Alarm Notifications</span>
+                <span className="text-sm text-gray-500">Get notified when alarms ring</span>
+              </div>
+              <ToggleSwitch 
+                isOn={notifications.alarm} 
+                onToggle={() => toggleNotification('alarm')} 
+              />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Timer Completion</span>
-              <button className="w-12 h-6 rounded-full bg-[var(--primary)]">
-                <div className="w-5 h-5 rounded-full bg-white translate-x-6" />
-              </button>
+              <div>
+                <span className="text-gray-300 block">Timer Completion</span>
+                <span className="text-sm text-gray-500">Alert when timer finishes</span>
+              </div>
+              <ToggleSwitch 
+                isOn={notifications.timer} 
+                onToggle={() => toggleNotification('timer')} 
+              />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Pomodoro Alerts</span>
-              <button className="w-12 h-6 rounded-full bg-[var(--primary)]">
-                <div className="w-5 h-5 rounded-full bg-white translate-x-6" />
-              </button>
+              <div>
+                <span className="text-gray-300 block">Pomodoro Alerts</span>
+                <span className="text-sm text-gray-500">Session change notifications</span>
+              </div>
+              <ToggleSwitch 
+                isOn={notifications.pomodoro} 
+                onToggle={() => toggleNotification('pomodoro')} 
+              />
             </div>
           </div>
         </section>

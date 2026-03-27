@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, RotateCcw, Flag, Trophy, TrendingDown } from 'lucide-react';
 import { formatTimeString } from '../utils/timeUtils';
+import PageHeader from '../components/PageHeader';
 
-export default function StopwatchPage() {
+export default function StopwatchPage({ onBack }) {
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [laps, setLaps] = useState([]);
@@ -85,7 +86,9 @@ export default function StopwatchPage() {
   const stats = getLapStats();
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center pb-28 px-6">
+    <div className="flex flex-col h-full">
+      {onBack && <PageHeader title="Stopwatch" onBack={onBack} />}
+      <div className="flex-1 flex flex-col items-center justify-center pb-28 px-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -193,6 +196,7 @@ export default function StopwatchPage() {
           </div>
         )}
       </motion.div>
+      </div>
     </div>
   );
 }

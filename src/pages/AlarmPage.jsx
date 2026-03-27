@@ -6,6 +6,8 @@ import {
   playAlarmSound, stopAlarmSound, requestNotificationPermission, 
   sendNotification, getRepeatDaysText, shouldAlarmTrigger 
 } from '../utils/alarmUtils';
+import { shouldShowNotification } from '../utils/settingsUtils';
+import PageHeader from '../components/PageHeader';
 
 const getDefaultFormData = () => ({
   hour: new Date().getHours(),
@@ -16,7 +18,7 @@ const getDefaultFormData = () => ({
   snoozeMinutes: 5
 });
 
-export default function AlarmPage() {
+export default function AlarmPage({ onBack }) {
   const [alarms, setAlarms] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -85,8 +87,10 @@ export default function AlarmPage() {
             newSet.add(snoozeData.alarmId);
             setIsAlarmRinging(true);
             setCurrentRingingAlarm(snoozeData.alarm);
-            playAlarmSound(snoozeData.alarm.ringtone, true);
-            sendNotification(snoozeData.alarm, true);
+            if (shouldShowNotification('alarm')) {
+              playAlarmSound(snoozeData.alarm.ringtone, true);
+              sendNotification(snoozeData.alarm, true);
+            }
             return newSet;
           }
           return prev;
@@ -103,8 +107,10 @@ export default function AlarmPage() {
             newSet.add(alarm.id);
             setIsAlarmRinging(true);
             setCurrentRingingAlarm(alarm);
-            playAlarmSound(alarm.ringtone, true);
-            sendNotification(alarm);
+            if (shouldShowNotification('alarm')) {
+              playAlarmSound(alarm.ringtone, true);
+              sendNotification(alarm);
+            }
             return newSet;
           });
         }
@@ -196,7 +202,9 @@ export default function AlarmPage() {
   const formatTime = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   return (
-    <div className="flex-1 flex flex-col px-4 pt-8 pb-28">
+    <div className="flex flex-col h-full">
+      {onBack && <PageHeader title="Alarm" onBack={onBack} />}
+      <div className="flex-1 flex flex-col px-4 pt-4 pb-28">
       {isAlarmRinging && currentRingingAlarm && (
         <motion.div
           initial={{ opacity: 0, y: -50 }}
@@ -489,6 +497,7 @@ export default function AlarmPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

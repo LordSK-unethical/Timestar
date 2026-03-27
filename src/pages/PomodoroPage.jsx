@@ -14,8 +14,10 @@ import {
 } from '../managers/pomodoroManager';
 import { playAudio, stopAudio, DEFAULT_RINGTONES } from '../managers/audioManager';
 import { sendNotification, isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
+import { shouldShowNotification } from '../utils/settingsUtils';
+import PageHeader from '../components/PageHeader';
 
-export default function PomodoroPage() {
+export default function PomodoroPage({ onBack }) {
   const [state, setState] = useState({
     timeRemaining: 25 * 60,
     isRunning: false,
@@ -40,10 +42,12 @@ export default function PomodoroPage() {
       },
       onSessionChange: (newState) => {
         setState({ ...newState });
-        if (settings.soundEnabled) {
+        if (settings.soundEnabled && shouldShowNotification('pomodoro')) {
           playAudio(DEFAULT_RINGTONES[0].path, false);
         }
-        handleNotification(newState);
+        if (shouldShowNotification('pomodoro')) {
+          handleNotification(newState);
+        }
       },
     });
     setState(init);
@@ -100,16 +104,20 @@ export default function PomodoroPage() {
   const currentSessionColor = sessionColors[state.currentSession];
 
   return (
-    <div className="flex flex-col h-full p-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Pomodoro</h1>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-2 rounded-full hover:bg-[#2c2c2c] transition-colors"
-        >
-          <Settings size={24} className="text-gray-400" />
-        </button>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader 
+        title="Pomodoro" 
+        onBack={onBack}
+        rightAction={
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 rounded-full hover:bg-[#2c2c2c] transition-colors"
+          >
+            <Settings size={22} className="text-gray-400" />
+          </button>
+        }
+      />
+      <div className="flex-1 p-4 overflow-auto">
 
       <div className="flex gap-2 mb-6">
         {['work', 'shortBreak', 'longBreak'].map((session) => (
@@ -214,6 +222,7 @@ export default function PomodoroPage() {
             <p className="text-xs text-gray-400">Minutes</p>
           </div>
         </div>
+      </div>
       </div>
 
       {showSettings && (
