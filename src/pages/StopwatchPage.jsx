@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, Flag } from 'lucide-react';
+import { Play, Pause, RotateCcw, Flag, Trophy, TrendingDown } from 'lucide-react';
 import { formatTimeString } from '../utils/timeUtils';
 
 export default function StopwatchPage() {
@@ -31,7 +31,32 @@ export default function StopwatchPage() {
     pausedTimeRef.current = 0;
   };
 
-  const handleLap = () => setLaps([{ time, id: Date.now() }, ...laps]);
+  const handleLap = () => {
+    const newLap = { 
+      time, 
+      id: Date.now(),
+      lapNumber: laps.length + 1,
+      splitTime: laps.length > 0 ? time - laps[0].time : time
+    };
+    setLaps([newLap, ...laps]);
+  };
+
+  const getLapStats = () => {
+    if (laps.length < 2) return { fastest: null, slowest: null };
+    
+    const splitTimes = laps.map((lap, i) => ({
+      index: i,
+      split: i === 0 ? lap.time : lap.time - laps[i - 1].time
+    }));
+    
+    const sorted = [...splitTimes].sort((a, b) => a.split - b.split);
+    return {
+      fastest: sorted[0].index,
+      slowest: sorted[sorted.length - 1].index
+    };
+  };
+
+  const stats = getLapStats();
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center pb-28 px-6">
@@ -79,20 +104,46 @@ export default function StopwatchPage() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="bg-[#1e1e1e] rounded-3xl max-h-48 overflow-y-auto">
+        <div className="bg-[#1e1e1e] rounded-3xl max-h-56 overflow-y-auto">
           <AnimatePresence>
-            {laps.map((lap, index) => (
-              <motion.div
-                key={lap.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="flex justify-between items-center px-6 py-4 border-b border-[#2c2c2c] last:border-b-0"
-              >
-                <span className="text-sm text-[#8a8a8a]">Lap {laps.length - index}</span>
-                <span className="text-lg font-mono text-[#e2e2e2]">{formatTimeString(lap.time, true)}</span>
-              </motion.div>
-            ))}
+            {laps.map((lap, index) => {
+              const isFastest = stats.fastest === index;
+              const isSlowest = stats.slowest === index;
+              const prevLap = laps[index + 1];
+              const splitTime = prevLap ? lap.time - prevLap.time : lap.time;
+              
+              return (
+                <motion.div
+                  key={lap.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className={`flex justify-between items-center px-5 py-3.5 border-b border-[#2c2c2c] last:border-b-0 ${
+                    isFastest ? 'bg-[#22c55e]/10' : isSlowest ? 'bg-[#ef4444]/10' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {isFastest && (
+                      <Trophy size={14} className="text-[#22c55e]" />
+                    )}
+                    {isSlowest && (
+                      <TrendingDown size={14} className="text-[#ef4444]" />
+                    )}
+                    <span className={`text-sm ${isFastest ? 'text-[#22c55e]' : isSlowest ? 'text-[#ef4444]' : 'text-[#8a8a8a]'}`}>
+                      Lap {laps.length - index}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[#6b6b6b]">
+                      +{formatTimeString(splitTime, false)}
+                    </span>
+                    <span className={`text-lg font-mono ${isFastest ? 'text-[#22c55e]' : isSlowest ? 'text-[#ef4444]' : 'text-[#e2e2e2]'}`}>
+                      {formatTimeString(lap.time, true)}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
           
           {laps.length === 0 && (
@@ -102,6 +153,19 @@ export default function StopwatchPage() {
             </div>
           )}
         </div>
+        
+        {laps.length >= 2 && (
+          <div className="flex justify-center gap-6 mt-3 text-xs">
+            <div className="flex items-center gap-1 text-[#22c55e]">
+              <Trophy size={12} />
+              Fastest: Lap {laps.length - stats.fastest}
+            </div>
+            <div className="flex items-center gap-1 text-[#ef4444]">
+              <TrendingDown size={12} />
+              Slowest: Lap {laps.length - stats.slowest}
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
