@@ -6,7 +6,7 @@ export default function PageHeader({ title, onBack, rightAction }) {
     <motion.div 
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between px-4 py-3 border-b border-[#2c2c2c] bg-[#121212]"
+      className="flex items-center justify-between px-4 py-3 border-b border-[#2c2c2c]"
     >
       <div className="flex items-center gap-3">
         {onBack && (

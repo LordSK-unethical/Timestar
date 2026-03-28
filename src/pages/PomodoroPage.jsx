@@ -104,7 +104,7 @@ export default function PomodoroPage({ onBack }) {
   const currentSessionColor = sessionColors[state.currentSession];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <PageHeader 
         title="Pomodoro" 
         onBack={onBack}
@@ -117,7 +117,7 @@ export default function PomodoroPage({ onBack }) {
           </button>
         }
       />
-      <div className="flex-1 p-4 overflow-auto">
+      <div className="p-4">
 
       <div className="flex gap-2 mb-6">
         {['work', 'shortBreak', 'longBreak'].map((session) => (

@@ -421,20 +421,20 @@ export default function TimerPage({ onBack }) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {onBack && <PageHeader title="Timer" onBack={onBack} />}
-      <div className="flex-1 flex flex-col px-4 pt-4 pb-28 overflow-y-auto">
-      <AnimatePresence>
-        {completedTimer && (
-          <TimerCompletePopup
-            timer={completedTimer}
-            onDismiss={handleDismissComplete}
-            onRestart={() => handleRestartComplete(completedTimer.id)}
-          />
-        )}
-      </AnimatePresence>
+      <div className="flex flex-col px-4 pt-4">
+        <AnimatePresence>
+          {completedTimer && (
+            <TimerCompletePopup
+              timer={completedTimer}
+              onDismiss={handleDismissComplete}
+              onRestart={() => handleRestartComplete(completedTimer.id)}
+            />
+          )}
+        </AnimatePresence>
 
-      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-normal text-[#e2e2e2] ml-2">Timer</h2>
         <motion.button
           onClick={addTimer}

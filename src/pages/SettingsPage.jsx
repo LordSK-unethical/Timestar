@@ -95,9 +95,9 @@ export default function SettingsPage({ onBack }) {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col">
       <PageHeader title="Settings" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-8">
+      <div className="p-4 space-y-6">
         <section className="bg-[#1e1e1e] rounded-xl p-4">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Palette size={20} className="text-[var(--primary)]" />

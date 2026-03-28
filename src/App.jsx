@@ -17,8 +17,8 @@ function AppContent() {
   const ActiveSection = sections[activeTab];
 
   return (
-    <div className="h-screen flex flex-col bg-[#121212] overflow-hidden">
-      <main className="flex-1 flex flex-col overflow-hidden pb-16">
+    <div className="flex flex-col h-screen bg-[#121212]">
+      <main className="flex-1 overflow-y-auto pb-20">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -30,7 +30,7 @@ function AppContent() {
               ease: [0.25, 0.1, 0.25, 1],
               opacity: { duration: 0.15 }
             }}
-            className="flex-1 flex flex-col overflow-hidden"
+            className="flex flex-col min-h-full"
           >
             <ActiveSection />
           </motion.div>

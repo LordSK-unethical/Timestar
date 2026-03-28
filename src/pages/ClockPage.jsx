@@ -54,9 +54,9 @@ export default function ClockPage({ onBack }) {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col">
       {onBack && <PageHeader title="Clock" onBack={onBack} />}
-      <div className="flex-1 flex flex-col items-center px-6 pt-8 pb-28 overflow-auto">
+      <div className="flex flex-col items-center px-6 pt-8 pb-8">
         
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}

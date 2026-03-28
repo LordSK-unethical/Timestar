@@ -1,5 +1,9 @@
 import ClockPage from '../pages/ClockPage';
 
 export default function ClockSection() {
-  return <ClockPage />;
+  return (
+    <div className="p-4">
+      <ClockPage />
+    </div>
+  );
 }

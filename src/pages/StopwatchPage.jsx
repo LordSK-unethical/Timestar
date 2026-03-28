@@ -86,9 +86,9 @@ export default function StopwatchPage({ onBack }) {
   const stats = getLapStats();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {onBack && <PageHeader title="Stopwatch" onBack={onBack} />}
-      <div className="flex-1 flex flex-col items-center justify-center pb-28 px-6">
+      <div className="flex flex-col items-center justify-center px-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}

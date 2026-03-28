@@ -38,7 +38,7 @@ export default function MoreSection() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-full">
       <AnimatePresence mode="wait">
         {activePage ? (
           <motion.div
@@ -47,7 +47,7 @@ export default function MoreSection() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
-            className="flex-1 flex flex-col"
+            className="flex flex-col"
           >
             {renderPage()}
           </motion.div>
@@ -57,11 +57,11 @@ export default function MoreSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col"
+            className="flex flex-col"
           >
             <PageHeader title="More" />
             
-            <div className="flex-1 overflow-auto p-4 space-y-3">
+            <div className="p-4 space-y-3">
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 return (

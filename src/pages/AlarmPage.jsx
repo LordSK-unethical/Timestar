@@ -202,9 +202,9 @@ export default function AlarmPage({ onBack }) {
   const formatTime = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {onBack && <PageHeader title="Alarm" onBack={onBack} />}
-      <div className="flex-1 flex flex-col px-4 pt-4 pb-28">
+      <div className="flex flex-col px-4 pt-4">
       {isAlarmRinging && currentRingingAlarm && (
         <motion.div
           initial={{ opacity: 0, y: -50 }}
@@ -272,7 +272,7 @@ export default function AlarmPage({ onBack }) {
         Alarms
       </motion.h2>
 
-      <div className="flex-1 overflow-y-auto pr-1">
+      <div className="pr-1">
         <AnimatePresence mode="popLayout">
           {alarms.map((alarm) => (
             <motion.div

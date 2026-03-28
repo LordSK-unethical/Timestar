@@ -1,5 +1,9 @@
 import AlarmPage from '../pages/AlarmPage';
 
 export default function AlarmSection() {
-  return <AlarmPage />;
+  return (
+    <div className="p-4">
+      <AlarmPage />
+    </div>
+  );
 }

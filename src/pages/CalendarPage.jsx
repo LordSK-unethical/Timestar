@@ -146,7 +146,7 @@ export default function CalendarPage({ onBack }) {
   const days = getDaysInMonth(currentDate);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <PageHeader 
         title="Calendar" 
         onBack={onBack}
@@ -159,7 +159,7 @@ export default function CalendarPage({ onBack }) {
           </button>
         }
       />
-      <div className="flex-1 p-4 overflow-auto">
+      <div className="p-4">
         <div className="bg-[#1e1e1e] rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
           <button onClick={handlePrevMonth} className="p-1 text-gray-400 hover:text-white">
@@ -212,7 +212,7 @@ export default function CalendarPage({ onBack }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div>
         <h3 className="text-lg font-semibold text-white mb-3">
           {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </h3>
