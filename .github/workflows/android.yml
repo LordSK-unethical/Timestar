@@ -1,0 +1,118 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'clock-app/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: clock-app/package-lock.json
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Rust and npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo
+            ~/.rustup
+            clock-app/node_modules
+            clock-app/src-tauri/target
+          key: ${{ runner.os }}-build-${{ hashFiles('clock-app/**/Cargo.lock', 'clock-app/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
+      - name: Install NDK
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125" --sdk_root=$ANDROID_HOME
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_SDK_ROOT: /opt/android-sdk
+
+      - name: Install npm dependencies
+        working-directory: clock-app
+        run: npm ci
+
+      - name: Initialize Android project
+        working-directory: clock-app
+        run: npx tauri android init -- --ci
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_SDK_ROOT: /opt/android-sdk
+          NDK_HOME: /opt/android-sdk/ndk/26.1.10909125
+
+      - name: Build debug APK
+        working-directory: clock-app
+        run: npx tauri build --debug
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_SDK_ROOT: /opt/android-sdk
+          NDK_HOME: /opt/android-sdk/ndk/26.1.10909125
+
+      - name: Build release APK
+        working-directory: clock-app
+        run: npx tauri build
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_SDK_ROOT: /opt/android-sdk
+          NDK_HOME: /opt/android-sdk/ndk/26.1.10909125
+
+      - name: Find APK files
+        id: find-apk
+        shell: bash
+        run: |
+          DEBUG_APK=$(find clock-app/src-tauri/target -name "*.apk" -path "*debug*android*" | head -1)
+          RELEASE_APK=$(find clock-app/src-tauri/target -name "*.apk" -path "*release*android*" -not -path "*unsigned*" | head -1)
+          echo "debug=$DEBUG_APK" >> $GITHUB_OUTPUT
+          echo "release=$RELEASE_APK" >> $GITHUB_OUTPUT
+
+      - name: Upload debug APK
+        if: steps.find-apk.outputs.debug != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: timestar-debug.apk
+          path: ${{ steps.find-apk.outputs.debug }}
+          retention-days: 30
+
+      - name: Upload release APK
+        if: steps.find-apk.outputs.release != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: timestar-release.apk
+          path: ${{ steps.find-apk.outputs.release }}
+          retention-days: 90
+
+      - name: Summary
+        run: |
+          echo "## Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Generated APKs:" >> $GITHUB_STEP_SUMMARY
+          find clock-app/src-tauri/target -name "*.apk" -path "*android*" 2>/dev/null | while read f; do
+            echo "- $(basename $f)" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download artifacts from the Actions tab." >> $GITHUB_STEP_SUMMARY
