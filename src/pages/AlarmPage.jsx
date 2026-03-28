@@ -4,7 +4,7 @@ import { Plus, Trash2, Bell, BellOff, Edit2, X, Check, Repeat, BellRing, Volume2
 import { 
   DAYS, SNOOZE_OPTIONS, RINGTONES, STORAGE_KEY, SNOOZE_KEY,
   playAlarmSound, stopAlarmSound, requestNotificationPermission, 
-  sendNotification, getRepeatDaysText, shouldAlarmTrigger 
+  sendNotification, getRepeatDaysText, shouldAlarmTrigger, getRingtones
 } from '../utils/alarmUtils';
 import { shouldShowNotification } from '../utils/settingsUtils';
 import PageHeader from '../components/PageHeader';
@@ -36,9 +36,11 @@ export default function AlarmPage({ onBack }) {
   const [showSnoozeMenu, setShowSnoozeMenu] = useState(null);
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [currentRingingAlarm, setCurrentRingingAlarm] = useState(null);
+  const [ringtoneOptions, setRingtoneOptions] = useState(RINGTONES);
 
   useEffect(() => {
     requestNotificationPermission();
+    getRingtones().then(setRingtoneOptions);
   }, []);
 
   useEffect(() => {
@@ -448,8 +450,8 @@ export default function AlarmPage({ onBack }) {
                   onChange={(e) => setFormData({ ...formData, ringtone: e.target.value })}
                   className="w-full p-3 rounded-xl bg-[#2c2c2c] text-[#e2e2e2] focus:outline-none cursor-pointer"
                 >
-                  {RINGTONES.map(ring => (
-                    <option key={ring.id} value={ring.id} className="bg-[#2c2c2c]">{ring.name}</option>
+                  {ringtoneOptions.map(ring => (
+                    <option key={ring.id} value={ring.id || ring.path} className="bg-[#2c2c2c]">{ring.name}</option>
                   ))}
                 </select>
               </div>

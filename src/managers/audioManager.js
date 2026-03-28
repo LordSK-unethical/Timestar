@@ -1,146 +1,309 @@
-import { open } from '@tauri-apps/plugin-dialog';
-import { appDataDir } from '@tauri-apps/api/path';
-import { exists, mkdir, writeFile, readFile, BaseDirectory } from '@tauri-apps/plugin-fs';
-
-const RINGTONES_DIR = 'ringtones';
-const SETTINGS_FILE = 'audio_settings.json';
+const RINGTONES_STORAGE_KEY = 'timestar_ringtones';
+const ACTIVE_RINGTONE_KEY = 'timestar_active_ringtone';
+const MAX_RINGTONES = 20;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 let currentAudio = null;
-let audioContext = null;
+let cachedRingtones = null;
 
-async function ensureRingtonesDir() {
-  try {
-    const dirExists = await exists(RINGTONES_DIR, { baseDir: BaseDirectory.AppData });
-    if (!dirExists) {
-      await mkdir(RINGTONES_DIR, { baseDir: BaseDirectory.AppData, recursive: true });
-    }
-  } catch (e) {
-    console.error('Error creating ringtones directory:', e);
-  }
+const DEFAULT_RINGTONES = [
+  { id: 'default', name: 'Default Alarm', path: '/ez_ez_dhurandar.mp3', isDefault: true },
+];
+
+function generateId() {
+  return `ringtone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export async function selectAudioFile() {
-  try {
-    const selected = await open({
-      multiple: false,
-      filters: [{
-        name: 'Audio',
-        extensions: ['mp3', 'wav', 'ogg', 'm4a']
-      }]
-    });
-
-    if (selected) {
-      const fileName = selected.name || selected.path?.split(/[/\\]/).pop() || 'custom.mp3';
-      const customPath = await saveRingtone(selected, fileName);
-      return { path: customPath, name: fileName };
-    }
-    return null;
-  } catch (e) {
-    console.error('Error selecting audio file:', e);
-    return null;
-  }
-}
-
-export async function saveRingtone(fileData, fileName) {
-  try {
-    await ensureRingtonesDir();
-    const ringtonePath = `${RINGTONES_DIR}/${fileName}`;
+async function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('TimeStarAudio', 1);
     
-    let content;
-    if (typeof fileData === 'string') {
-      const response = await fetch(fileData);
-      content = await response.arrayBuffer();
-    } else if (fileData.arrayBuffer) {
-      content = await fileData.arrayBuffer();
-    } else if (fileData.read) {
-      content = await readFile(fileData.path);
-    } else {
-      content = fileData;
-    }
-
-    await writeFile(ringtonePath, new Uint8Array(content), { baseDir: BaseDirectory.AppData });
-    return ringtonePath;
-  } catch (e) {
-    console.error('Error saving ringtone:', e);
-    return null;
-  }
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('ringtones')) {
+        db.createObjectStore('ringtones', { keyPath: 'id' });
+      }
+    };
+  });
 }
 
-export async function getSavedRingtones() {
+async function getAllRingtonesFromDB() {
   try {
-    const settingsExists = await exists(SETTINGS_FILE, { baseDir: BaseDirectory.AppData });
-    if (!settingsExists) {
-      return [];
-    }
-    const data = await readFile(SETTINGS_FILE, { baseDir: BaseDirectory.AppData });
-    const settings = JSON.parse(new TextDecoder().decode(data));
-    return settings.ringtones || [];
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('ringtones', 'readonly');
+      const store = transaction.objectStore('ringtones');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
   } catch (e) {
-    console.error('Error reading saved ringtones:', e);
+    console.error('Error reading from IndexedDB:', e);
     return [];
   }
 }
 
-export async function saveRingtoneSettings(ringtones) {
+async function saveRingtoneToDB(ringtone) {
   try {
-    await ensureRingtonesDir();
-    const settings = { ringtones };
-    await writeFile(SETTINGS_FILE, new TextEncoder().encode(JSON.stringify(settings, null, 2)), { baseDir: BaseDirectory.AppData });
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('ringtones', 'readwrite');
+      const store = transaction.objectStore('ringtones');
+      const request = store.put(ringtone);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
   } catch (e) {
-    console.error('Error saving ringtone settings:', e);
+    console.error('Error saving to IndexedDB:', e);
+    return false;
   }
 }
 
-export function playAudio(audioPath, loop = true) {
-  stopAudio();
-  
-  const audio = new Audio();
-  audio.loop = loop;
-  
-  if (audioPath.startsWith('http') || audioPath.startsWith('data:')) {
-    audio.src = audioPath;
-  } else {
-    audio.src = `https://asset.localhost/${audioPath}`;
+async function deleteRingtoneFromDB(id) {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('ringtones', 'readwrite');
+      const store = transaction.objectStore('ringtones');
+      const request = store.delete(id);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('Error deleting from IndexedDB:', e);
+    return false;
   }
-  
-  audio.play().catch(e => console.error('Error playing audio:', e));
-  currentAudio = audio;
-  return audio;
 }
 
-export function stopAudio() {
+export async function getSavedRingtones() {
+  if (cachedRingtones !== null) {
+    return cachedRingtones;
+  }
+  
+  try {
+    const customRingtones = await getAllRingtonesFromDB();
+    cachedRingtones = customRingtones;
+    return customRingtones;
+  } catch (e) {
+    console.error('Error getting saved ringtones:', e);
+    cachedRingtones = [];
+    return [];
+  }
+}
+
+export async function getAllRingtones() {
+  const custom = await getSavedRingtones();
+  return [...DEFAULT_RINGTONES, ...custom];
+}
+
+export function invalidateRingtonesCache() {
+  cachedRingtones = null;
+}
+
+export async function addRingtone(file) {
+  const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/x-m4a'];
+  const validExtensions = ['.mp3', '.wav', '.ogg', '.m4a'];
+  
+  const fileName = file.name || 'custom-ringtone.mp3';
+  const extension = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  
+  if (!validTypes.includes(file.type) && !validExtensions.includes(extension)) {
+    throw new Error('Invalid file type. Please upload MP3, WAV, OGG, or M4A files.');
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error('File too large. Maximum size is 5MB.');
+  }
+  
+  const existingRingtones = await getSavedRingtones();
+  if (existingRingtones.length >= MAX_RINGTONES) {
+    throw new Error(`Maximum ${MAX_RINGTONES} ringtones allowed. Please delete some first.`);
+  }
+  
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result.split(',')[1];
+        const ringtone = {
+          id: generateId(),
+          name: fileName.replace(/\.[^/.]+$/, ''),
+          data: base64,
+          type: file.type || 'audio/mpeg',
+          createdAt: Date.now(),
+        };
+        
+        await saveRingtoneToDB(ringtone);
+        invalidateRingtonesCache();
+        
+        resolve({
+          id: ringtone.id,
+          name: ringtone.name,
+          path: null,
+          isCustom: true,
+        });
+      } catch (e) {
+        reject(e);
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function deleteRingtone(id) {
+  const success = await deleteRingtoneFromDB(id);
+  if (success) {
+    invalidateRingtonesCache();
+    
+    const activeRingtone = getActiveRingtoneId();
+    if (activeRingtone === id) {
+      await setActiveRingtone('default');
+    }
+  }
+  return success;
+}
+
+export function getActiveRingtoneId() {
+  try {
+    return localStorage.getItem(ACTIVE_RINGTONE_KEY) || 'default';
+  } catch {
+    return 'default';
+  }
+}
+
+export async function setActiveRingtone(id) {
+  try {
+    localStorage.setItem(ACTIVE_RINGTONE_KEY, id);
+    return true;
+  } catch (e) {
+    console.error('Error saving active ringtone:', e);
+    return false;
+  }
+}
+
+export async function getActiveRingtone() {
+  const activeId = getActiveRingtoneId();
+  const allRingtones = await getAllRingtones();
+  
+  const active = allRingtones.find(r => r.id === activeId);
+  if (active) {
+    return active;
+  }
+  
+  return DEFAULT_RINGTONES[0];
+}
+
+function getRingtoneUrl(ringtone) {
+  if (ringtone.isDefault) {
+    return ringtone.path;
+  }
+  
+  if (ringtone.data) {
+    return `data:${ringtone.type};base64,${ringtone.data}`;
+  }
+  
+  return null;
+}
+
+export function playRingtone(ringtoneId, options = {}) {
+  const { loop = true, volume = 0.5 } = options;
+  
+  stopRingtone();
+  
+  return new Promise(async (resolve, reject) => {
+    try {
+      const allRingtones = await getAllRingtones();
+      const ringtone = allRingtones.find(r => r.id === ringtoneId) || DEFAULT_RINGTONES[0];
+      
+      const audioUrl = getRingtoneUrl(ringtone);
+      if (!audioUrl) {
+        reject(new Error('Could not load ringtone'));
+        return;
+      }
+      
+      currentAudio = new Audio();
+      currentAudio.loop = loop;
+      currentAudio.volume = volume;
+      
+      currentAudio.src = audioUrl;
+      
+      currentAudio.play()
+        .then(() => resolve({ ...ringtone, audio: currentAudio }))
+        .catch((e) => {
+          console.error('Playback error:', e);
+          reject(e);
+        });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+export function playRingtoneById(ringtoneId, loop = true) {
+  stopRingtone();
+  
+  return new Promise(async (resolve, reject) => {
+    try {
+      const allRingtones = await getAllRingtones();
+      const ringtone = allRingtones.find(r => r.id === ringtoneId) || DEFAULT_RINGTONES[0];
+      
+      const audioUrl = getRingtoneUrl(ringtone);
+      if (!audioUrl) {
+        reject(new Error('Could not load ringtone'));
+        return;
+      }
+      
+      currentAudio = new Audio();
+      currentAudio.loop = loop;
+      currentAudio.volume = 0.5;
+      currentAudio.src = audioUrl;
+      
+      currentAudio.play()
+        .then(() => resolve(currentAudio))
+        .catch((e) => {
+          console.error('Playback error:', e);
+          reject(e);
+        });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+export function stopRingtone() {
   if (currentAudio) {
     currentAudio.pause();
-    currentAudio.currentTime = 0;
+    currentAudio.src = '';
     currentAudio = null;
   }
 }
 
-export function pauseAudio() {
+export function pauseRingtone() {
   if (currentAudio) {
     currentAudio.pause();
   }
 }
 
-export function resumeAudio() {
+export function resumeRingtone() {
   if (currentAudio) {
-    currentAudio.play().catch(e => console.error('Error resuming audio:', e));
+    currentAudio.play().catch(() => {});
   }
 }
 
-export function isAudioPlaying() {
-  return currentAudio && !currentAudio.paused;
+export function isRingtonePlaying() {
+  return currentAudio !== null && !currentAudio.paused;
 }
 
-export function setVolume(volume) {
+export function setRingtoneVolume(volume) {
   if (currentAudio) {
     currentAudio.volume = Math.max(0, Math.min(1, volume));
   }
 }
 
-export const DEFAULT_RINGTONES = [
-  { id: 'alarm1', name: 'Alarm 1', path: '/ez_ez_dhurandar.mp3' },
-  { id: 'gentle', name: 'Gentle', path: null },
-  { id: 'digital', name: 'Digital', path: null },
-  { id: 'chime', name: 'Chime', path: null },
-];
+export { DEFAULT_RINGTONES };

@@ -1,9 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Moon, Sun, Palette, Upload, Maximize2, Bell, Volume2 } from 'lucide-react';
+import { Moon, Sun, Palette, Upload, Bell, Play, Pause, Trash2, Check } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { toggleWidgetMode, getIsWidgetMode } from '../managers/widgetWindow';
-import { selectAudioFile, getSavedRingtones, saveRingtoneSettings, DEFAULT_RINGTONES } from '../managers/audioManager';
+import { 
+  getAllRingtones, 
+  addRingtone, 
+  deleteRingtone, 
+  playRingtoneById, 
+  stopRingtone,
+  getActiveRingtoneId,
+  setActiveRingtone,
+  invalidateRingtonesCache,
+  DEFAULT_RINGTONES
+} from '../managers/audioManager';
 import PageHeader from '../components/PageHeader';
 
 const COLOR_SCHEMES = [
@@ -39,8 +48,13 @@ function ToggleSwitch({ isOn, onToggle, disabled = false }) {
 
 export default function SettingsPage({ onBack }) {
   const { isDark, setIsDark, colorScheme, setColorScheme } = useTheme();
-  const [widgetMode, setWidgetMode] = useState(false);
   const [savedRingtones, setSavedRingtones] = useState([]);
+  const [playingRingtoneId, setPlayingRingtoneId] = useState(null);
+  const [selectedRingtoneId, setSelectedRingtoneId] = useState(null);
+  const [showApplyButton, setShowApplyButton] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
   const [notifications, setNotifications] = useState(() => ({
     alarm: localStorage.getItem(NOTIFICATION_KEYS.alarm) !== 'false',
     timer: localStorage.getItem(NOTIFICATION_KEYS.timer) !== 'false',
@@ -48,8 +62,10 @@ export default function SettingsPage({ onBack }) {
   }));
 
   useEffect(() => {
-    setWidgetMode(getIsWidgetMode());
     loadRingtones();
+    return () => {
+      stopRingtone();
+    };
   }, []);
 
   useEffect(() => {
@@ -61,8 +77,9 @@ export default function SettingsPage({ onBack }) {
   }, [notifications]);
 
   const loadRingtones = async () => {
-    const ringtones = await getSavedRingtones();
-    setSavedRingtones([...DEFAULT_RINGTONES, ...ringtones]);
+    const ringtones = await getAllRingtones();
+    setSavedRingtones(ringtones);
+    setSelectedRingtoneId(getActiveRingtoneId());
   };
 
   const handleThemeToggle = () => {
@@ -73,17 +90,62 @@ export default function SettingsPage({ onBack }) {
     setColorScheme(scheme);
   };
 
-  const handleWidgetToggle = async () => {
-    const newMode = await toggleWidgetMode();
-    setWidgetMode(newMode);
+  const handleFileSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const newRingtone = await addRingtone(file);
+      await loadRingtones();
+      setSelectedRingtoneId(newRingtone.id);
+      setShowApplyButton(true);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
-  const handleUploadRingtone = async () => {
-    const newRingtone = await selectAudioFile();
-    if (newRingtone) {
-      const updated = [...savedRingtones, newRingtone];
-      setSavedRingtones(updated);
-      await saveRingtoneSettings(updated);
+  const handlePlayRingtone = async (ringtone) => {
+    if (playingRingtoneId === ringtone.id) {
+      stopRingtone();
+      setPlayingRingtoneId(null);
+    } else {
+      stopRingtone();
+      try {
+        await playRingtoneById(ringtone.id, false);
+        setPlayingRingtoneId(ringtone.id);
+      } catch (e) {
+        console.error('Playback error:', e);
+      }
+    }
+  };
+
+  const handleSelectRingtone = (ringtoneId) => {
+    setSelectedRingtoneId(ringtoneId);
+    setShowApplyButton(ringtoneId !== getActiveRingtoneId());
+  };
+
+  const handleApplyRingtone = async () => {
+    if (selectedRingtoneId) {
+      await setActiveRingtone(selectedRingtoneId);
+      setShowApplyButton(false);
+    }
+  };
+
+  const handleDeleteRingtone = async (ringtoneId) => {
+    await deleteRingtone(ringtoneId);
+    await loadRingtones();
+    
+    if (selectedRingtoneId === ringtoneId) {
+      setSelectedRingtoneId('default');
+      setShowApplyButton(true);
     }
   };
 
@@ -156,46 +218,112 @@ export default function SettingsPage({ onBack }) {
 
         <section className="bg-[#1e1e1e] rounded-xl p-4">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Maximize2 size={20} className="text-[var(--primary)]" />
-            Window Mode
-          </h2>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-gray-300 block">Widget Mode</span>
-              <span className="text-sm text-gray-500">Compact always-on-top view</span>
-            </div>
-            <ToggleSwitch isOn={widgetMode} onToggle={handleWidgetToggle} />
-          </div>
-        </section>
-
-        <section className="bg-[#1e1e1e] rounded-xl p-4">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Upload size={20} className="text-[var(--primary)]" />
-            Custom Ringtones
+            Ringtones
           </h2>
 
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {savedRingtones.map((ringtone, index) => (
+          {error && (
+            <div className="mb-3 p-2 bg-red-500/20 text-red-400 text-sm rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
+            {savedRingtones.map((ringtone) => (
               <div
-                key={ringtone.id || index}
-                className="flex items-center justify-between p-2 rounded-lg bg-[#2c2c2c]"
+                key={ringtone.id}
+                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                  selectedRingtoneId === ringtone.id 
+                    ? 'bg-[var(--primary)]/20 border border-[var(--primary)]' 
+                    : 'bg-[#2c2c2c] hover:bg-[#3c3c3c]'
+                }`}
+                onClick={() => handleSelectRingtone(ringtone.id)}
               >
-                <span className="text-gray-300">{ringtone.name}</span>
-                <Volume2 size={16} className="text-gray-500" />
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    selectedRingtoneId === ringtone.id 
+                      ? 'border-[var(--primary)]' 
+                      : 'border-gray-500'
+                  }`}>
+                    {selectedRingtoneId === ringtone.id && (
+                      <div className="w-2 h-2 rounded-full bg-[var(--primary)]" />
+                    )}
+                  </div>
+                  <span className="text-gray-300 truncate">{ringtone.name}</span>
+                  {ringtone.isDefault && (
+                    <span className="text-xs text-gray-500">(Default)</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePlayRingtone(ringtone);
+                    }}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#4a4a4a]"
+                  >
+                    {playingRingtoneId === ringtone.id ? (
+                      <Pause size={16} />
+                    ) : (
+                      <Play size={16} />
+                    )}
+                  </motion.button>
+                  {ringtone.isCustom && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRingtone(ringtone.id);
+                      }}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-400/10"
+                    >
+                      <Trash2 size={16} />
+                    </motion.button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
 
+          {showApplyButton && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleApplyRingtone}
+              className="w-full mb-3 py-2 rounded-lg bg-[var(--primary)] text-white font-medium flex items-center justify-center gap-2"
+            >
+              <Check size={18} />
+              Apply Selected Ringtone
+            </motion.button>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".mp3,.wav,.ogg,.m4a,audio/mpeg,audio/wav,audio/ogg,audio/mp3,audio/x-m4a"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleUploadRingtone}
-            className="w-full mt-3 py-2 rounded-lg bg-[#2c2c2c] text-gray-300 hover:bg-[#3c3c3c] flex items-center justify-center gap-2"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="w-full py-2 rounded-lg bg-[#2c2c2c] text-gray-300 hover:bg-[#3c3c3c] flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Upload size={18} />
-            Upload Custom Ringtone
+            {isUploading ? 'Uploading...' : 'Upload Custom Ringtone'}
           </motion.button>
+          
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Supported: MP3, WAV, OGG, M4A (max 5MB)
+          </p>
         </section>
 
         <section className="bg-[#1e1e1e] rounded-xl p-4">

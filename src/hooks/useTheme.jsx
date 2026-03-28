@@ -49,11 +49,21 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('theme_mode', isDark ? 'dark' : 'light');
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.classList.toggle('light', !isDark);
+    document.body.classList.toggle('light', !isDark);
     
     const bgColor = isDark ? '#121212' : '#f5f5f5';
     const surfaceColor = isDark ? '#1e1e1e' : '#ffffff';
+    const cardColor = isDark ? '#252525' : '#f0f0f0';
+    const textPrimary = isDark ? '#e2e2e2' : '#1a1a1a';
+    const textSecondary = isDark ? '#8a8a8a' : '#666666';
+    const borderColor = isDark ? '#2c2c2c' : '#e0e0e0';
+    
     document.documentElement.style.setProperty('--bg-primary', bgColor);
     document.documentElement.style.setProperty('--bg-surface', surfaceColor);
+    document.documentElement.style.setProperty('--bg-card', cardColor);
+    document.documentElement.style.setProperty('--text-primary', textPrimary);
+    document.documentElement.style.setProperty('--text-secondary', textSecondary);
+    document.documentElement.style.setProperty('--border-color', borderColor);
   }, [isDark]);
 
   useEffect(() => {

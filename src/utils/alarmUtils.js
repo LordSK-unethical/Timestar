@@ -1,16 +1,20 @@
+import { 
+  DEFAULT_RINGTONES, 
+  getAllRingtones, 
+  playRingtoneById, 
+  stopRingtone,
+  getActiveRingtoneId,
+  invalidateRingtonesCache as clearRingtoneCache
+} from '../managers/audioManager';
+
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SNOOZE_OPTIONS = [5, 10, 15];
-const RINGTONES = [
-  { id: 'default', name: 'Default' },
-  { id: 'morning', name: 'Morning' },
-  { id: 'gentle', name: 'Gentle' },
-  { id: 'radar', name: 'Radar' },
-];
+
+const RINGTONES = DEFAULT_RINGTONES;
 
 const STORAGE_KEY = 'timestar_alarms';
 const SNOOZE_KEY = 'timestar_snooze';
 
-let alarmAudio = null;
 let volumeLevel = 0;
 let volumeInterval = null;
 
@@ -18,32 +22,35 @@ function playAlarmSound(ringtoneId = 'default', loop = true) {
   stopAlarmSound();
   
   try {
-    alarmAudio = new Audio('/ez_ez_dhurandar.mp3');
-    alarmAudio.loop = loop;
-    alarmAudio.volume = 0.3;
-    volumeLevel = 0.3;
+    const idToPlay = ringtoneId || getActiveRingtoneId();
     
-    alarmAudio.play().catch(() => {});
-    
-    if (ringtoneId === 'default') {
-      volumeInterval = setInterval(() => {
-        if (volumeLevel < 0.8 && alarmAudio && !alarmAudio.paused) {
-          volumeLevel += 0.02;
-          alarmAudio.volume = volumeLevel;
+    playRingtoneById(idToPlay, loop)
+      .then((audio) => {
+        if (audio) {
+          audio.volume = 0.3;
+          volumeLevel = 0.3;
+          
+          if (idToPlay === 'default' || idToPlay === DEFAULT_RINGTONES[0].id) {
+            volumeInterval = setInterval(() => {
+              if (volumeLevel < 0.8 && audio && !audio.paused) {
+                volumeLevel += 0.02;
+                audio.volume = volumeLevel;
+              }
+            }, 1000);
+          }
         }
-      }, 1000);
-    }
+      })
+      .catch((e) => {
+        console.log('Audio playback error:', e);
+      });
   } catch (e) {
     console.log('Audio error:', e);
   }
 }
 
 function stopAlarmSound() {
-  if (alarmAudio) {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
-    alarmAudio = null;
-  }
+  stopRingtone();
+  
   if (volumeInterval) {
     clearInterval(volumeInterval);
     volumeInterval = null;
@@ -122,5 +129,7 @@ export {
   requestNotificationPermission, 
   sendNotification,
   getRepeatDaysText,
-  shouldAlarmTrigger
+  shouldAlarmTrigger,
+  getAllRingtones as getRingtones,
+  clearRingtoneCache as invalidateRingtonesCache
 };

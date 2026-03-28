@@ -66,6 +66,21 @@ body.light {
   background: #9ca3af;
 }
 
+@media (pointer: coarse) {
+  button, 
+  .btn, 
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  input, 
+  select, 
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @layer components {
   .btn-primary {
     @apply px-4 py-2 rounded-lg font-medium transition-all;
@@ -93,17 +108,4 @@ body.light {
     outline: none;
     border-color: var(--primary);
   }
-}
-
-.widget-mode {
-  background: transparent !important;
-}
-
-.widget-mode nav,
-.widget-mode .navbar {
-  display: none !important;
-}
-
-.widget-mode main {
-  padding: 0 !important;
 }
