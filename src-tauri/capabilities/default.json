@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Desktop-only permissions (tray, global-shortcut). See mobile.json for Android/iOS.",
-  "platforms": ["linux", "windows", "macos"],
+  "platforms": ["linux", "windows", "macOS"],
   "windows": [
     "main"
   ],

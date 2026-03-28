@@ -1,7 +1,7 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "TimeStar - A feature-rich desktop clock application"
+description = "TimeStar - A feature-rich clock application"
 authors = ["you"]
 license = ""
 repository = ""
@@ -16,18 +16,39 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
+# Core serialization - available on all platforms
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-# tray-icon is desktop-only internally in Tauri (gated by #[cfg(desktop)])
-tauri = { version = "2.10.3", features = ["tray-icon", "devtools"] }
-tauri-plugin-log = "2"
+
+# Tauri core - available on all platforms
+# Note: tray-icon feature works because it's gated internally in Tauri
+tauri = { version = "2.10.3", features = ["devtools"] }
+
+# Cross-platform plugins available on both desktop and mobile
 tauri-plugin-notification = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-shell = "2"
 
-# Desktop-only plugins — not available on Android/iOS
+# Logging plugin - available on all platforms
+tauri-plugin-log = "2"
+
+# ============================================
+# DESKTOP-ONLY DEPENDENCIES
+# These are NOT compiled for Android/iOS targets
+# ============================================
+
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+# Single instance - prevents multiple app instances (desktop only)
 tauri-plugin-single-instance = "2"
+
+# Global shortcuts - keyboard shortcuts (desktop only)
 tauri-plugin-global-shortcut = "2"
+
+[features]
+# Default features for desktop builds
+default = ["custom-protocol"]
+
+# Custom protocol for production builds
+custom-protocol = ["tauri/custom-protocol"]

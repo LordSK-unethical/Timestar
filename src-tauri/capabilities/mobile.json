@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "mobile",
   "description": "Mobile permissions for Android and iOS. Excludes desktop-only APIs (tray, global-shortcut).",
-  "platforms": ["android", "ios"],
+  "platforms": ["android", "iOS"],
   "windows": [
     "main"
   ],
