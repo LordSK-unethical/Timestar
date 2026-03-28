@@ -1,0 +1,44 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Mobile permissions for Android and iOS. Excludes desktop-only APIs (tray, global-shortcut).",
+  "platforms": ["android", "ios"],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+
+    "notification:default",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-notify",
+    "notification:allow-show",
+    "notification:allow-cancel",
+    "notification:allow-get-active",
+    "notification:allow-get-pending",
+
+    "fs:default",
+    "fs:allow-read",
+    "fs:allow-write",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-copy-file",
+    "fs:allow-app-write",
+    "fs:allow-app-read",
+    "fs:allow-app-read-recursive",
+    "fs:allow-app-write-recursive",
+
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "dialog:allow-ask",
+    "dialog:allow-confirm",
+
+    "shell:default",
+    "shell:allow-open"
+  ]
+}
