@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'clock-app/**'
+      - '**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
 
@@ -29,16 +29,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install npm dependencies
-        working-directory: clock-app
-        run: npm ci
-
+      # ✅ FIX 1: Cache must come BEFORE npm ci so it can actually be restored
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
-          path: clock-app/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('clock-app/package-lock.json') }}
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
           restore-keys: ${{ runner.os }}-node-modules-
+
+      - name: Install npm dependencies
+        run: npm ci
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -51,36 +51,39 @@ jobs:
           path: |
             ~/.cargo
             ~/.rustup
-            clock-app/src-tauri/target
-          key: ${{ runner.os }}-rust-${{ hashFiles('clock-app/**/Cargo.lock') }}
+            src-tauri/target
+          key: ${{ runner.os }}-rust-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-rust-
 
+      # ✅ FIX 2: setup-android@v3 only accepts `packages`; install SDK + NDK explicitly
       - name: Install Android SDK & NDK
         uses: android-actions/setup-android@v3
-        with:
-          api-level: 33
-          ndk: 26.1.10909125
-          arch: arm64-v8a
-          force-avd-creation: false
 
+      - name: Install SDK packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "ndk;26.1.10909125"
+
+      # ✅ FIX 3: Removed erroneous `--` before --ci
       - name: Initialize Android project
-        working-directory: clock-app
-        run: npx tauri android init -- --ci
+        run: npx tauri android init --ci
 
+      # ✅ FIX 4: Use `tauri android build` not `tauri build` for Android targets
       - name: Build debug APK
-        working-directory: clock-app
-        run: npx tauri build --debug
+        run: npx tauri android build --debug
 
       - name: Build release APK
-        working-directory: clock-app
-        run: npx tauri build
+        run: npx tauri android build
 
       - name: Find APK files
         id: find-apk
         shell: bash
         run: |
-          DEBUG_APK=$(find clock-app/src-tauri/target -type f -name "*.apk" -path "*debug*android*" | head -1 || true)
-          RELEASE_APK=$(find clock-app/src-tauri/target -type f -name "*.apk" -path "*release*android*" -not -path "*unsigned*" | head -1 || true)
+          DEBUG_APK=$(find src-tauri/target -type f -name "*.apk" -path "*debug*android*" | head -1 || true)
+          RELEASE_APK=$(find src-tauri/target -type f -name "*.apk" -path "*release*android*" -not -path "*unsigned*" | head -1 || true)
           echo "debug=$DEBUG_APK" >> $GITHUB_OUTPUT
           echo "release=$RELEASE_APK" >> $GITHUB_OUTPUT
 
@@ -105,7 +108,7 @@ jobs:
           echo "## Build Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Generated APKs:" >> $GITHUB_STEP_SUMMARY
-          find clock-app/src-tauri/target -type f -name "*.apk" -path "*android*" 2>/dev/null | while read f; do
+          find src-tauri/target -type f -name "*.apk" -path "*android*" 2>/dev/null | while read f; do
             echo "- $(basename "$f")" >> $GITHUB_STEP_SUMMARY
           done
           echo "" >> $GITHUB_STEP_SUMMARY
