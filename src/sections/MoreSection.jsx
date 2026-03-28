@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, CalendarDays, Timer, Timer as StopwatchIcon, Settings, ChevronRight } from 'lucide-react';
+import { Brain, CalendarDays, Timer as StopwatchIcon, Settings, ChevronRight } from 'lucide-react';
 import PomodoroPage from '../pages/PomodoroPage';
 import CalendarPage from '../pages/CalendarPage';
-import TimerPage from '../pages/TimerPage';
 import StopwatchPage from '../pages/StopwatchPage';
 import SettingsPage from '../pages/SettingsPage';
 import PageHeader from '../components/PageHeader';
@@ -11,7 +10,6 @@ import PageHeader from '../components/PageHeader';
 const menuItems = [
   { id: 'pomodoro', label: 'Pomodoro', icon: Brain, description: 'Focus timer with work/break sessions' },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays, description: 'Events and schedule' },
-  { id: 'timer', label: 'Timer', icon: Timer, description: 'Countdown timer with presets' },
   { id: 'stopwatch', label: 'Stopwatch', icon: StopwatchIcon, description: 'Track time with lap support' },
   { id: 'settings', label: 'Settings', icon: Settings, description: 'Customize app appearance' },
 ];
@@ -26,8 +24,6 @@ export default function MoreSection() {
         return <PomodoroPage onBack={() => setActivePage(null)} />;
       case 'calendar':
         return <CalendarPage onBack={() => setActivePage(null)} />;
-      case 'timer':
-        return <TimerPage onBack={() => setActivePage(null)} />;
       case 'stopwatch':
         return <StopwatchPage onBack={() => setActivePage(null)} />;
       case 'settings':

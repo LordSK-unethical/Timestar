@@ -12,7 +12,7 @@ import {
   getProgress,
   getState,
 } from '../managers/pomodoroManager';
-import { playRingtoneById, stopRingtone, getActiveRingtoneId, DEFAULT_RINGTONES } from '../managers/audioManager';
+import { playPomodoroSound, stopRingtone, getActiveRingtoneId, cleanup as cleanupAudio, DEFAULT_RINGTONES } from '../managers/audioManager';
 import { sendNotification, isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
 import { shouldShowNotification } from '../utils/settingsUtils';
 import PageHeader from '../components/PageHeader';
@@ -44,8 +44,8 @@ export default function PomodoroPage({ onBack }) {
         setState({ ...newState });
         if (settings.soundEnabled && shouldShowNotification('pomodoro')) {
           const activeRingtone = getActiveRingtoneId();
-          playRingtoneById(activeRingtone, false).catch(() => {
-            playRingtoneById(DEFAULT_RINGTONES[0].id, false);
+          playPomodoroSound(activeRingtone).catch(() => {
+            playPomodoroSound(DEFAULT_RINGTONES[0].id);
           });
         }
         if (shouldShowNotification('pomodoro')) {
@@ -54,6 +54,10 @@ export default function PomodoroPage({ onBack }) {
       },
     });
     setState(init);
+    
+    return () => {
+      cleanupAudio();
+    };
   }, [settings.soundEnabled]);
 
   const handleNotification = async (pomodoroState) => {

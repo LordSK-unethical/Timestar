@@ -2,12 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Bell, BellOff, Edit2, X, Check, Repeat, BellRing, Volume2 } from 'lucide-react';
 import { 
-  DAYS, SNOOZE_OPTIONS, RINGTONES, STORAGE_KEY, SNOOZE_KEY,
-  playAlarmSound, stopAlarmSound, requestNotificationPermission, 
-  sendNotification, getRepeatDaysText, shouldAlarmTrigger, getRingtones
+  DAYS, SNOOZE_OPTIONS, STORAGE_KEY, SNOOZE_KEY,
+  requestNotificationPermission, 
+  sendNotification, getRepeatDaysText, shouldAlarmTrigger
 } from '../utils/alarmUtils';
 import { shouldShowNotification } from '../utils/settingsUtils';
 import PageHeader from '../components/PageHeader';
+import { 
+  getAllRingtones, 
+  playAlarm, 
+  stopAlarm, 
+  getActiveRingtoneId,
+  cleanup as cleanupAudio
+} from '../managers/audioManager';
 
 const getDefaultFormData = () => ({
   hour: new Date().getHours(),
@@ -36,11 +43,16 @@ export default function AlarmPage({ onBack }) {
   const [showSnoozeMenu, setShowSnoozeMenu] = useState(null);
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [currentRingingAlarm, setCurrentRingingAlarm] = useState(null);
-  const [ringtoneOptions, setRingtoneOptions] = useState(RINGTONES);
+  const [ringtoneOptions, setRingtoneOptions] = useState([]);
+  const [activeRingingId, setActiveRingingId] = useState(null);
 
   useEffect(() => {
     requestNotificationPermission();
-    getRingtones().then(setRingtoneOptions);
+    getAllRingtones().then(setRingtoneOptions);
+    
+    return () => {
+      cleanupAudio();
+    };
   }, []);
 
   useEffect(() => {
@@ -54,8 +66,10 @@ export default function AlarmPage({ onBack }) {
   }, [snoozeData]);
 
   const handleSnooze = useCallback((alarm, minutes) => {
-    stopAlarmSound();
+    stopAlarm();
     setIsAlarmRinging(false);
+    setCurrentRingingAlarm(null);
+    setActiveRingingId(null);
     
     const snoozeTime = new Date();
     snoozeTime.setMinutes(snoozeTime.getMinutes() + minutes);
@@ -68,13 +82,13 @@ export default function AlarmPage({ onBack }) {
     });
     
     setShowSnoozeMenu(null);
-    setCurrentRingingAlarm(null);
   }, []);
 
   const handleDismiss = useCallback(() => {
-    stopAlarmSound();
+    stopAlarm();
     setIsAlarmRinging(false);
     setCurrentRingingAlarm(null);
+    setActiveRingingId(null);
   }, []);
 
   useEffect(() => {
@@ -89,8 +103,12 @@ export default function AlarmPage({ onBack }) {
             newSet.add(snoozeData.alarmId);
             setIsAlarmRinging(true);
             setCurrentRingingAlarm(snoozeData.alarm);
+            setActiveRingingId(snoozeData.alarmId);
+            
+            const ringtoneToPlay = snoozeData.alarm.ringtone || getActiveRingtoneId();
+            
             if (shouldShowNotification('alarm')) {
-              playAlarmSound(snoozeData.alarm.ringtone, true);
+              playAlarm(ringtoneToPlay, true);
               sendNotification(snoozeData.alarm, true);
             }
             return newSet;
@@ -109,8 +127,12 @@ export default function AlarmPage({ onBack }) {
             newSet.add(alarm.id);
             setIsAlarmRinging(true);
             setCurrentRingingAlarm(alarm);
+            setActiveRingingId(alarm.id);
+            
+            const ringtoneToPlay = alarm.ringtone || getActiveRingtoneId();
+            
             if (shouldShowNotification('alarm')) {
-              playAlarmSound(alarm.ringtone, true);
+              playAlarm(ringtoneToPlay, true);
               sendNotification(alarm);
             }
             return newSet;

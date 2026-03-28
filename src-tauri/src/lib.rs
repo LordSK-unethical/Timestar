@@ -1,9 +1,4 @@
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
-};
-use tauri_plugin_single_instance::init as single_instance_init;
+use tauri::Manager;
 
 #[tauri::command]
 fn get_current_time() -> String {
@@ -17,30 +12,48 @@ fn get_current_time() -> String {
     format!("{:02}:{:02}", hours, minutes)
 }
 
+#[cfg(desktop)]
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    WindowEvent,
+};
+
+#[cfg(desktop)]
+use tauri_plugin_single_instance::init as single_instance_init;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
-        .plugin(single_instance_init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
-        }))
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![get_current_time])
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+        .invoke_handler(tauri::generate_handler![get_current_time]);
 
+    #[cfg(desktop)]
+    {
+        builder = builder
+            .plugin(single_instance_init(|app, _args, _cwd| {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }))
+            .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    }
+
+    builder = builder.setup(|app| {
+        if cfg!(debug_assertions) {
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .build(),
+            )?;
+        }
+
+        #[cfg(desktop)]
+        {
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let show = MenuItem::with_id(app, "show", "Show App", true, None::<&str>)?;
             let hide = MenuItem::with_id(app, "hide", "Hide App", true, None::<&str>)?;
@@ -82,15 +95,20 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+        }
 
-            Ok(())
-        })
-        .on_window_event(|window, event| {
+        Ok(())
+    });
+
+    #[cfg(desktop)]
+    {
+        builder = builder.on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 let _ = window.hide();
                 api.prevent_close();
             }
         });
+    }
 
     builder.run(tauri::generate_context!()).expect("error while running tauri application");
 }

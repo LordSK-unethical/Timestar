@@ -24,7 +24,6 @@ const COLOR_SCHEMES = [
 
 const NOTIFICATION_KEYS = {
   alarm: 'alarmNotifications',
-  timer: 'timerNotifications', 
   pomodoro: 'pomodoroNotifications'
 };
 
@@ -57,7 +56,6 @@ export default function SettingsPage({ onBack }) {
   const fileInputRef = useRef(null);
   const [notifications, setNotifications] = useState(() => ({
     alarm: localStorage.getItem(NOTIFICATION_KEYS.alarm) !== 'false',
-    timer: localStorage.getItem(NOTIFICATION_KEYS.timer) !== 'false',
     pomodoro: localStorage.getItem(NOTIFICATION_KEYS.pomodoro) !== 'false',
   }));
 
@@ -70,7 +68,6 @@ export default function SettingsPage({ onBack }) {
 
   useEffect(() => {
     localStorage.setItem(NOTIFICATION_KEYS.alarm, notifications.alarm);
-    localStorage.setItem(NOTIFICATION_KEYS.timer, notifications.timer);
     localStorage.setItem(NOTIFICATION_KEYS.pomodoro, notifications.pomodoro);
     
     window.dispatchEvent(new CustomEvent('notificationSettings', { detail: notifications }));
@@ -341,16 +338,6 @@ export default function SettingsPage({ onBack }) {
               <ToggleSwitch 
                 isOn={notifications.alarm} 
                 onToggle={() => toggleNotification('alarm')} 
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-gray-300 block">Timer Completion</span>
-                <span className="text-sm text-gray-500">Alert when timer finishes</span>
-              </div>
-              <ToggleSwitch 
-                isOn={notifications.timer} 
-                onToggle={() => toggleNotification('timer')} 
               />
             </div>
             <div className="flex items-center justify-between">
